@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestionar Usuarios{% endblock %}
+
+{% block content %}
+  <h1>Gestionar Usuarios</h1>
+  <p>Aquí puedes ver y gestionar el acceso de los usuarios de tu ingenio.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Nivel</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user_id, email, nivel, activo in usuarios %}
+      <tr>
+        <td data-label="ID">{{ user_id }}</td>
+        <td data-label="Email">{{ email }}</td>
+        <td data-label="Nivel">{{ nivel }}</td>
+        <td data-label="Estado">{{ "Activo" if activo else "Inactivo" }}</td>
+        <td data-label="Acciones">
+          {% if user_id != g.user.id %} {# Un jefe no puede desactivarse a sí mismo #}
+          <form action="{{ url_for('management.toggle_acceso', user_id=user_id) }}" method="post" style="display: inline;">
+            <button type="submit">{{ "Desactivar" if activo else "Activar" }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

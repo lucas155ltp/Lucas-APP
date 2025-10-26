@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+
+{% block title %}Inventario{% endblock %}
+
+{% block content %}
+  <h1>Inventario Actual</h1>
+  
+  <form method="get" action="{{ url_for('main.inventario') }}" class="filter-form">
+    <div class="filter-group">
+      <label for="producto_id">Producto:</label>
+      <select name="producto_id">
+          <option value="">Todos</option>
+          {% for id, nombre, _ in productos %}
+          <option value="{{ id }}" {% if filtros_activos.get('producto_id')|int == id %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="almacen_id">Almacén:</label>
+      <select name="almacen_id">
+          <option value="">Todos</option>
+          {% for id, nombre in almacenes %}
+          <option value="{{ id }}" {% if filtros_activos.get('almacen_id')|int == id %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="lote">Lote:</label>
+      <input type="text" name="lote" value="{{ filtros_activos.get('lote', '') }}">
+    </div>
+    <div class="filter-group">
+      <label for="variedad">Variedad:</label>
+      <input type="text" name="variedad" value="{{ filtros_activos.get('variedad', '') }}">
+    </div>
+    <div class="filter-buttons">
+      <label for="fecha_inicio">Fecha Desde:</label>
+      <input type="date" name="fecha_inicio" value="{{ filtros_activos.get('fecha_inicio', '') }}">
+    </div>
+    <div class="filter-group">
+      <label for="fecha_fin">Fecha Hasta:</label>
+      <input type="date" name="fecha_fin" value="{{ filtros_activos.get('fecha_fin', '') }}">
+    </div>
+    <div class="filter-buttons">
+      <button type="submit">Filtrar</button>
+      {% if g.user.nivel_acceso != 'empleado' %}
+        <a href="{{ url_for('reports.exportar', reporte_nombre='inventario', **filtros_activos) }}" class="button-secondary">Exportar a Excel</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Producto</th>
+        <th>Código</th>
+        <th>Variedad</th>
+        <th>Lote</th>
+        <th>Unidades</th>
+        <th>Estado</th>
+        <th>Fecha Entrada</th>
+        <th>Precio Venta</th>
+        <th>Almacén</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for id, producto, codigo, variedad, lote, cantidad, cantidad_kg, unidad, estado, fecha_entrada, precio_venta, almacen_nombre in inventario %}
+      <tr>
+        <td data-label="ID">{{ id }}</td>
+        <td data-label="Producto">{{ producto }}</td>
+        <td data-label="Código">{{ codigo }}</td>
+        <td data-label="Variedad">{{ variedad or 'N/A' }}</td>
+        <td data-label="Lote">{{ lote }}</td>
+        <td data-label="Unidades">{{ cantidad_kg|mostrar_unidades(unidad, cantidad) }}</td>
+        <td data-label="Estado">{{ estado|capitalize }}</td>
+        <td data-label="Fecha Entrada">{{ fecha_entrada }}</td>
+        <td data-label="Precio Venta">${{ "%.2f"|format(precio_venta) if precio_venta is not none else 'N/A' }}</td>
+        <td data-label="Almacén">{{ almacen_nombre or 'N/A' }}</td>
+        <td data-label="Acciones">
+          <div class="actions-container">
+            <a href="{{ url_for('transactions.agregar_al_carrito', item_id=id) }}" class="action-button sell">Añadir al Carrito</a>
+            {% if g.user.nivel_acceso != 'empleado' %}
+            <a href="{{ url_for('transactions.fijar_precio', item_id=id) }}" class="action-button set-price">Fijar Precio</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="12">No hay items en el inventario que coincidan con los filtros.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

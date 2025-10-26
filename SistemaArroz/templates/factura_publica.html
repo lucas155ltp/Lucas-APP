@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura {{ factura.info[0] }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            font-size: 16px;
+            line-height: 24px;
+            background-color: #fff;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .invoice-header h1 {
+            margin: 0;
+            font-size: 2em;
+            color: #333;
+        }
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        .invoice-details div {
+            text-align: left;
+        }
+        .invoice-details strong {
+            display: block;
+            color: #555;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        table th, table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        table tr:last-child td {
+            border-bottom: none;
+        }
+        .totals {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .totals p {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+        .totals .total {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #000;
+        }
+        @media print {
+            body, .invoice-box {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <div class="invoice-header">
+            <h1>{{ factura.info[5] }}</h1>
+            {% if factura.info[6] %}
+                <p><strong>Dirección:</strong> {{ factura.info[6] }}</p>
+            {% endif %}
+            {% if factura.info[7] %}
+                <p><strong>NIT:</strong> {{ factura.info[7] }}</p>
+            {% endif %}
+            {% if factura.info[8] %}
+                <p><strong>Celular:</strong> {{ factura.info[8] }}</p>
+            {% endif %}
+            <h2>FACTURA</h2>
+        </div>
+        <div class="invoice-details">
+            <div>
+                <strong>Cliente:</strong> {{ factura.info[1] }}
+            </div>
+            <div>
+                <strong>Factura N°:</strong> {{ "%05d"|format(factura.info[0]) }}<br>
+                <strong>Fecha:</strong> {{ factura.info[2].split(' ')[0] }}
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Precio Unit.</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for nombre_prod, variedad, cantidad, unidad, precio_unit, subtotal_item in factura.detalles %}
+                <tr>
+                    <td>{{ nombre_prod }}{% if variedad %} ({{ variedad }}){% endif %}</td>
+                    <td>{{ "%.2f"|format(cantidad) }}</td>
+                    <td>{{ unidad }}</td>
+                    <td>${{ "%.2f"|format(precio_unit) }}</td>
+                    <td>${{ "%.2f"|format(subtotal_item) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="totals">
+            <p>Subtotal: ${{ "%.2f"|format(subtotal) }}</p>
+            <p>IVA (12%): ${{ "%.2f"|format(iva) }}</p>
+            <p class="total">Total: ${{ "%.2f"|format(total_final) }}</p>
+        </div>
+    </div>
+</body>
+</html>

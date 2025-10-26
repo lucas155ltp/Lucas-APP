@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block title %}Servicio de Pelado a Cliente{% endblock %}
+
+{% block content %}
+  <h1>Registrar Servicio de Pelado a Cliente</h1>
+  <p>Utiliza este formulario para registrar un servicio de pelado (transformación) pagado por un cliente. Esta operación generará un ingreso y no afectará tu inventario.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" id="servicio-pelado-form">
+    <fieldset>
+      <legend>Datos del Cliente y Producto</legend>
+
+      <label for="cliente">Nombre del Cliente:</label>
+      <input type="text" name="cliente" id="cliente" required><br><br>
+
+      <label for="lote_cliente">Lote del Cliente (Opcional):</label>
+      <input type="text" name="lote_cliente" id="lote_cliente"><br><br>
+
+      <label for="producto_id">Producto a Procesar:</label>
+      <select name="producto_id" id="producto_id" required>
+        <option value="" disabled selected>Seleccione un producto</option>
+        {% for id, nombre, req in productos %}
+          <option value="{{ id }}" data-req-variedad="{{ req }}">{{ nombre }}</option>
+        {% endfor %}
+      </select><br><br>
+
+      <label for="variedad">Variedad:</label>
+      <select name="variedad" id="variedad" disabled>
+          <option value="">-- Seleccione una variedad --</option>
+          {% for id, nombre in variedades %}
+          <option value="{{ nombre }}">{{ nombre }}</option>
+          {% endfor %}
+      </select>
+      <small>Se activará si el producto lo requiere.</small><br><br>
+
+    </fieldset>
+
+    <fieldset>
+      <legend>Cálculo de Ingreso</legend>
+
+      <label for="cantidad_procesada">Cantidad Recibida del Cliente:</label>
+      <input type="number" step="0.01" name="cantidad_procesada" id="cantidad_procesada" required min="0.01"><br><br>
+
+      <label for="unidad">Unidad de Medida:</label>
+      <select name="unidad" id="unidad">
+          <option value="quintal" selected>Quintales</option>
+          <option value="fanega">Fanegas</option>
+      </select><br><br>
+
+      <label for="precio_servicio">Precio por Fanega:</label>
+      <input type="number" step="0.01" name="precio_servicio" id="precio_servicio" required min="0"><br><br>
+
+      <label for="total_ingreso">Ingreso Total Estimado:</label>
+      <input type="text" id="total_ingreso" readonly style="font-weight: bold; border: none;"><br><br>
+
+    </fieldset>
+
+    <fieldset>
+      <legend>Productos Derivados a Obtener (en quintales)</legend>
+      <p>Ingresa las cantidades esperadas de productos derivados que se obtendrán al pelar la cantidad procesada.</p>
+      {% for p_id, p_nombre, p_req_variedad in productos_derivados %}
+        <label for="derivados_{{ p_id }}">{{ p_nombre }}:</label>
+        <input type="number" step="0.01" name="derivados_{{ p_id }}" id="derivados_{{ p_id }}" value="0.0">
+        <br><br>
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+        <legend>Información Adicional</legend>
+        <label for="observaciones">Observaciones:</label><br>
+        <textarea name="observaciones" id="observaciones" rows="3" style="width: 100%;"></textarea>
+    </fieldset>
+
+    <br>
+    <button type="submit">Registrar Servicio</button>
+  </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productoSelect = document.getElementById('producto_id');
+        const variedadSelect = document.getElementById('variedad');
+        productoSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const requiereVariedad = selectedOption.getAttribute('data-req-variedad') === '1';
+            variedadSelect.disabled = !requiereVariedad;
+            if (!requiereVariedad) variedadSelect.value = '';
+        });
+
+        const cantidadInput = document.getElementById('cantidad_procesada');
+        const precioInput = document.getElementById('precio_servicio');
+        const totalInput = document.getElementById('total_ingreso');
+
+        function calcularIngreso() {
+            const cantidad = parseFloat(cantidadInput.value.replace(',', '.')) || 0;
+            const precio = parseFloat(precioInput.value.replace(',', '.')) || 0;
+            const unidad = document.getElementById('unidad').value;
+            // Convertir a fanegas si es quintal (1 quintal = 46 kg, 1 fanega = 200 kg, so 1 quintal = 46/200 = 0.23 fanegas)
+            const cantidadEnFanegas = unidad === 'quintal' ? cantidad * 0.23 : cantidad;
+            totalInput.value = '$' + (cantidadEnFanegas * precio).toFixed(2);
+
+
+        }
+        cantidadInput.addEventListener('input', calcularIngreso);
+        precioInput.addEventListener('input', calcularIngreso);
+        productoSelect.addEventListener('change', calcularIngreso);
+        document.getElementById('unidad').addEventListener('change', calcularIngreso);
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}Lista de Productos{% endblock %}
+
+{% block content %}
+  <h1>Productos Registrados</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Requiere Variedad</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for id, nombre, req in productos %}
+      <tr>
+        <td>{{ id }}</td>
+        <td>{{ nombre }}</td>
+        <td>{{ 'Sí' if req else 'No' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestionar Ingenios{% endblock %}
+
+{% block content %}
+  <h1>Gestionar Ingenios</h1>
+  <p>Desde aquí puedes crear nuevos ingenios en el sistema. Recuerda que para que un ingenio sea funcional, debe ser registrado con un usuario 'jefe' a través de la página de registro pública.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" style="margin-bottom: 2em; border: 1px solid #ddd; padding: 1em; border-radius: 5px;">
+    <h3>Crear Nuevo Ingenio</h3>
+    <label for="nombre">Nombre del Ingenio:</label>
+    <input type="text" id="nombre" name="nombre" required>
+    <label for="direccion">Dirección:</label>
+    <input type="text" id="direccion" name="direccion" required>
+    <label for="nit">NIT:</label>
+    <input type="text" id="nit" name="nit">
+    <label for="celular">Celular:</label>
+    <input type="text" id="celular" name="celular" required>
+    <button type="submit">Crear</button>
+  </form>
+
+  <h3>Ingenios Existentes</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Dirección</th>
+        <th>NIT</th>
+        <th>Celular</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ingenio in ingenios %}
+      <tr>
+        <td>{{ ingenio[0] }}</td>
+        <td>{{ ingenio[1] }}</td>
+        <td>{{ ingenio[2] or '-' }}</td>
+        <td>{{ ingenio[3] or '-' }}</td>
+        <td>{{ ingenio[4] or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No hay ingenios registrados.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

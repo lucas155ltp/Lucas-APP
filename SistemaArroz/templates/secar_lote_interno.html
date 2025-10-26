@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}Secado Interno{% endblock %}
+
+{% block content %}
+  <h1>Secado Interno de Lote</h1>
+  <p>Este proceso cambia el estado de un lote de 'Mojado' a 'Seco' y permite registrar la merma (pérdida de peso) durante el secado.</p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" id="secar-form">
+    <fieldset>
+      <legend>Selección de Lote Mojado</legend>
+      
+      <label for="item_id">Seleccionar Lote a Secar:</label>
+      <select name="item_id" id="item_id" required>
+        <option value="" disabled selected>-- Elija un lote mojado --</option>
+        {% for id, lote, cantidad, unidad, nombre, variedad, almacen_id in lotes %}
+          <option value="{{ id }}" data-cantidad-max="{{ cantidad }}" data-lote="{{ lote }}">
+            ID: {{ id }} | Lote: {{ lote }} | Variedad: {{ variedad or 'N/A' }} | Disp: {{ "%.2f"|format(cantidad) }} {{ unidad }}
+          </option>
+        {% endfor %}
+      </select>
+      <br><br>
+
+      <label for="lote_manual_input">O ingrese el Número de Lote:</label>
+      <input type="text" id="lote_manual_input" placeholder="Escriba el lote y presione Enter o tabule">
+      <small id="lote-manual-info" style="color: red;"></small>
+      <br><br>
+
+      <label for="cantidad_perdida">Cantidad Perdida por Secado (Merma) en Quintales:</label>
+      <input type="number" step="0.01" name="cantidad_perdida" id="cantidad_perdida" value="0.0" required>
+      <small id="cantidad-disponible-info"></small>
+      <br><br>
+    </fieldset>
+
+    <fieldset>
+        <legend>Información Adicional</legend>
+        <label for="observaciones">Observaciones:</label><br>
+        <textarea name="observaciones" id="observaciones" rows="3" style="width: 100%;"></textarea>
+    </fieldset>
+
+    <br>
+    <button type="submit">Confirmar Secado</button>
+  </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loteSelect = document.getElementById('item_id');
+        const cantidadPerdidaInput = document.getElementById('cantidad_perdida');
+        const cantidadInfo = document.getElementById('cantidad-disponible-info');
+        const loteManualInput = document.getElementById('lote_manual_input');
+        const loteManualInfo = document.getElementById('lote-manual-info');
+
+        loteSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const cantidadMax = selectedOption.getAttribute('data-cantidad-max');
+
+            if (cantidadMax) {
+                cantidadPerdidaInput.max = cantidadMax;
+                cantidadInfo.textContent = `(Disponible: ${parseFloat(cantidadMax).toFixed(2)})`;
+            } else {
+                cantidadPerdidaInput.max = null;
+                cantidadInfo.textContent = '';
+            }
+
+            // Actualizar el campo de texto manual
+            if (selectedOption && selectedOption.value) {
+                loteManualInput.value = selectedOption.dataset.lote || '';
+                loteManualInfo.textContent = '';
+            } else {
+                loteManualInput.value = '';
+            }
+        });
+
+        loteManualInput.addEventListener('change', function() {
+            const loteBuscado = this.value.trim().toUpperCase();
+            loteManualInfo.textContent = '';
+            if (!loteBuscado) return;
+
+            let found = false;
+            for (const option of loteSelect.options) {
+                if (option.dataset.lote && option.dataset.lote.toUpperCase() === loteBuscado) {
+                    loteSelect.value = option.value;
+                    loteSelect.dispatchEvent(new Event('change'));
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                loteManualInfo.textContent = 'Lote no encontrado o no disponible.';
+                loteSelect.value = "";
+                loteSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+  </script>
+{% endblock %}

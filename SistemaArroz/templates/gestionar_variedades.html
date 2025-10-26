@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestionar Variedades{% endblock %}
+
+{% block content %}
+  <h1>Gestionar Variedades de Arroz</h1>
+  <p>Aquí puedes crear y ver las variedades de arroz para tu ingenio. Estas aparecerán en el formulario de compras.</p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" style="margin-bottom: 2em; border: 1px solid #ddd; padding: 1em; border-radius: 5px;">
+    <h3>Crear Nueva Variedad</h3>
+    <label for="nombre">Nombre de la Variedad:</label>
+    <input type="text" id="nombre" name="nombre" required>
+    <button type="submit">Crear</button>
+  </form>
+
+  <h3>Variedades Existentes</h3>
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for id, nombre in variedades %}
+      <tr>
+        <td data-label="ID">{{ id }}</td>
+        <td data-label="Nombre">{{ nombre }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="2">No has registrado ninguna variedad.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

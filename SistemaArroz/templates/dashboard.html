@@ -1,0 +1,265 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5em;
+  }
+  .stat-card {
+    background-color: #fff;
+    padding: 1.5em;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .stat-card-title {
+    font-size: 1em;
+    color: #555;
+    margin: 0 0 0.5em 0;
+    font-weight: bold;
+  }
+  .stat-card-value {
+    font-size: 2.2em;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+  }
+  .stat-card-value.positive { color: #28a745; }
+  .stat-card-value.negative { color: #dc3545; }
+  .stat-card-footer {
+    font-size: 0.9em;
+    color: #777;
+    margin-top: auto; /* Pushes footer to the bottom */
+    padding-top: 1em;
+  }
+  .chart-container {
+    background-color: #fff;
+    padding: 1.5em;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    grid-column: 1 / -1; /* Span full width */
+    margin-top: 1.5em;
+    position: relative; /* Necesario para la responsividad de Chart.js */
+    height: 450px;      /* Establece una altura fija para el contenedor del gráfico */
+  }
+  .inventory-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Dos columnas para las tarjetas */
+    gap: 1.5em;
+    grid-column: 1 / -1; /* Ocupa todo el ancho */
+  }
+  .inventory-chart-container {
+    grid-column: 1 / -1; /* El gráfico ocupa todo el ancho de la sección de inventario */
+    height: 400px; /* Altura más apropiada para un gráfico de dona */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .dashboard-filters {
+    background-color: #fff;
+    padding: 1em;
+    border-radius: 8px;
+    margin-bottom: 1.5em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+
+  /* --- Responsive Adjustments for Dashboard --- */
+  @media (max-width: 768px) {
+    .dashboard-grid, .inventory-section {
+      grid-template-columns: 1fr; /* Stack cards in a single column */
+    }
+    .stat-card-value {
+      font-size: 1.8em; /* Slightly smaller font for mobile */
+    }
+    h1, h2, h3 { font-size: 1.2em; }
+    h1 { font-size: 1.5em; }
+  }
+</style>
+
+<h1>Dashboard de Finanzas y Operaciones</h1>
+
+<div class="dashboard-filters">
+  <form method="get" action="{{ url_for('main.dashboard') }}" class="filter-form" id="dashboard-filter-form">
+    <div class="filter-group">
+      <label for="periodo_tipo">Ver por:</label>
+      <select name="periodo_tipo" id="periodo_tipo">
+        <option value="ultimos_30_dias" {% if filtros_activos.get('periodo_tipo') == 'ultimos_30_dias' or not filtros_activos.get('periodo_tipo') %}selected{% endif %}>Últimos 30 días</option>
+        <option value="mensual" {% if filtros_activos.get('periodo_tipo') == 'mensual' %}selected{% endif %}>Mensual</option>
+        <option value="temporada" {% if filtros_activos.get('periodo_tipo') == 'temporada' %}selected{% endif %}>Por Temporada</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="filtro-mensual" style="display:none;">
+      <label for="mes">Mes:</label>
+      <select name="mes" id="mes">
+        {% for mes_num, mes_nombre in meses %}
+          <option value="{{ mes_num }}" {% if filtros_activos.get('mes')|int == mes_num %}selected{% endif %}>{{ mes_nombre }}</option>
+        {% endfor %}
+      </select>
+      <!-- El selector de año se moverá fuera -->
+    </div>
+
+    <div class="filter-group" id="filtro-temporada" style="display:none;">
+      <label for="temporada">Temporada:</label>
+      <select name="temporada" id="temporada">
+        <option value="zafra" {% if filtros_activos.get('temporada') == 'zafra' %}selected{% endif %}>Zafra (Feb-May)</option>
+        <option value="descanso" {% if filtros_activos.get('temporada') == 'descanso' %}selected{% endif %}>Descanso (Jun-Ene)</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="filtro-año" style="display:none;">
+      <label for="año">Año:</label>
+      <select name="año" id="año">
+        {% for año in años %}
+          <option value="{{ año }}" {% if filtros_activos.get('año')|int == año %}selected{% endif %}>{{ año }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit">Filtrar</button>
+    <a href="{{ url_for('main.dashboard_export_excel', **request.args) }}" class="button-secondary">Exportar a Excel</a>
+  </form>
+</div>
+
+<h2>Resultados para: <span style="color: #be3706;">{{ titulo_periodo }}</span></h2>
+
+<div class="dashboard-grid">
+  <!-- Fila de Finanzas -->
+  <div class="stat-card">
+    <h3 class="stat-card-title">Ingresos por Ventas</h3>
+    <p class="stat-card-value positive">${{ "%.2f"|format(stats.total_ventas) }}</p>
+    <p class="stat-card-footer">{{ titulo_periodo }}</p>
+  </div>
+  <div class="stat-card">
+    <h3 class="stat-card-title">Costos de Compras</h3>
+    <p class="stat-card-value negative">${{ "%.2f"|format(stats.total_compras) }}</p>
+    <p class="stat-card-footer">{{ titulo_periodo }}</p>
+  </div>
+  <div class="stat-card">
+    <h3 class="stat-card-title">Ingresos por Servicios</h3>
+    <p class="stat-card-value positive">${{ "%.2f"|format(stats.total_servicios) }}</p>
+    <p class="stat-card-footer">{{ titulo_periodo }}</p>
+  </div>
+  <div class="stat-card">
+    <h3 class="stat-card-title">Balance General</h3>
+    <p class="stat-card-value {{ 'positive' if stats.balance >= 0 else 'negative' }}">${{ "%.2f"|format(stats.balance) }}</p>
+    <p class="stat-card-footer">{{ titulo_periodo }} (Ventas + Servicios - Compras)</p>
+  </div>
+
+  <!-- Sección de Inventario -->
+  <div class="inventory-section">
+    <div class="stat-card">
+      <h3 class="stat-card-title">Valor de Inventario</h3>
+      <p class="stat-card-value">${{ "%.2f"|format(stats.valor_inventario) }}</p>
+      <p class="stat-card-footer">Valor estimado actual basado en costo</p>
+    </div>
+    <div class="stat-card">
+      <h3 class="stat-card-title">Lotes Activos</h3>
+      <p class="stat-card-value">{{ stats.lotes_activos }}</p>
+      <p class="stat-card-footer">Cantidad actual de lotes con stock > 0</p>
+    </div>
+    <div class="chart-container inventory-chart-container">
+      <h3>Distribución de Valor en Inventario por Producto</h3>
+      <canvas id="inventoryPieChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="chart-container">
+  <h3>Ventas por {{ 'Día' if stats.agrupacion_grafico == 'dia' else 'Mes' }} ({{ titulo_periodo }})</h3>
+  <canvas id="salesChart"></canvas>
+</div>
+
+<!-- Incluir Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // --- Lógica para mostrar/ocultar filtros ---
+    const periodoSelect = document.getElementById('periodo_tipo');
+    const filtroMensual = document.getElementById('filtro-mensual');
+    const filtroTemporada = document.getElementById('filtro-temporada');
+    const filtroAño = document.getElementById('filtro-año');
+
+    function toggleFiltros() {
+      const valor = periodoSelect.value;
+      filtroMensual.style.display = 'none';
+      filtroTemporada.style.display = 'none';
+      filtroAño.style.display = 'none';
+
+      if (valor === 'mensual') {
+        filtroMensual.style.display = 'flex';
+        filtroAño.style.display = 'flex';
+      } else if (valor === 'temporada') {
+        filtroTemporada.style.display = 'flex';
+        filtroAño.style.display = 'flex';
+      }
+    }
+
+    periodoSelect.addEventListener('change', toggleFiltros);
+    toggleFiltros(); // Ejecutar al cargar la página para establecer el estado inicial
+
+
+    // --- Lógica para el gráfico de barras de ventas ---
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesData = {{ stats.ventas_agrupadas | tojson }};
+
+    new Chart(salesCtx, {
+      type: 'bar',
+      data: {
+        labels: salesData.map(d => d.fecha),
+        datasets: [{
+          label: 'Ventas ($)',
+          data: salesData.map(d => d.total),
+          backgroundColor: 'rgba(22, 160, 133, 0.6)',
+          borderColor: 'rgba(22, 160, 133, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: { 
+        scales: { y: { beginAtZero: true } },
+        responsive: true,
+        maintainAspectRatio: false,
+      }
+    });
+
+    // --- Lógica para el gráfico de pastel de inventario ---
+    const inventoryCtx = document.getElementById('inventoryPieChart').getContext('2d');
+    const inventoryData = {{ stats.inventario_chart_data | tojson }};
+
+    if (inventoryData.data.length > 0) {
+      new Chart(inventoryCtx, {
+        type: 'doughnut',
+        data: {
+          labels: inventoryData.labels,
+          datasets: [{
+            label: 'Valor de Inventario ($)',
+            data: inventoryData.data,
+            backgroundColor: [
+              'rgba(22, 160, 133, 0.7)',
+              'rgba(39, 174, 96, 0.7)',
+              'rgba(41, 128, 185, 0.7)',
+              'rgba(142, 68, 173, 0.7)',
+              'rgba(243, 156, 18, 0.7)',
+              'rgba(211, 84, 0, 0.7)',
+              'rgba(192, 57, 43, 0.7)',
+              'rgba(52, 73, 94, 0.7)'
+            ],
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
